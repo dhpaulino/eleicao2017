@@ -23,16 +23,19 @@ class Node(object):
 
 	def connect(self, id, ip_dest, port_dest):
 		"""Conecta com o nodo informado e adiciona na lista de nodos vivos. Retorna o nodo criado"""
-		connected = False
-		node = Node(id, ip_dest, port_dest)
-		node.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+		
+		s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		
 		try:
-			node.socket.connect((ip_dest, port_dest))
-			connected = True
+			s.connect((ip_dest, port_dest))
 		except socket.error:
 			return None
+		node = self.add_node_alive(id, ip_dest, port_dest, s)
+		return node
 
+	def add_node_alive(self, id, ip, port, socket):
+		node = Node(id, ip, port)
+		node.socket = socket
 		self.nodes_alive[id] = node
 		return node
 	

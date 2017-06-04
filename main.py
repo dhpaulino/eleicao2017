@@ -21,8 +21,13 @@ def main():
 	#TODO: Mudar para verificar o IP de cada nodo que se conectou comigo e entao eu me conecto com o nodo do IP correspondente
 	while len(node.nodes_alive) < N_NODES - 1:
 		node.socket.listen(1)
-		conn, addr = node.socket.accept()
-		print "conn{0} -- addr{1}".format(conn, addr)
+		conn, addr_remote_socket = node.socket.accept()
+		for id, address in NODES.iteritems():
+			if(address[0] == addr_remote_socket[0]):
+				node.add_node_alive(id, addr_remote_socket[0], addr_remote_socket[1], conn)
+				break
+
+		print "conn{0} -- addr{1}".format(conn, addr_remote_socket)
 
 def read_node_number():
 	if len(sys.argv) != 2:
