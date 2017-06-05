@@ -46,9 +46,28 @@ def hearthbeat_sender(node):
 def message_reciver(node):
 
 	for id, other_node in node.nodes_alive.items():
-		try:
-			msg = bitarray(MSG_SIZE)
+		try:    
+                    #mensagem urgente, avisando que caiu aguém
+                        msgurg = bytearray(1)
+                        nurgbytes = other_node.socket.recv_into(msgurg,1,socket.MSG_OOB)
+                                                                
+		except socket.error, e:                    
+                        nurgbytes=0
+			pass
+
+                if nurgbytes:
+                        print "RECEBI AVISO DE QUE NODE {0} QUEBROU, FECHANDO CONEXAO".format(ord(msgurg))
+                        del node.nodes_alive[ord(msgurg)] #????
+                        elect_leader(node, ord(msgurg))
+                        
+    
+
+                else:
+                    try:
+                 #mensagem regular, heartbeat
+		        msg = bitarray(MSG_SIZE)
 			nbytes = other_node.socket.recv_into(msg)
+                        print "NBYTES=   ",nbytes
                         #VERIFICAR AQUI PARA FIM DE CONEXAO? SIM, pois o buffer ainda está cheio, e send() pode continuar mandando. Palhaçadas do socket.
                         if nbytes == 0:
                             del node.nodes_alive[id]
@@ -62,9 +81,15 @@ def message_reciver(node):
 				other_node.last_heathbeat = datetime.now()
 
 			print "Recebido msg de {1}:{0}".format(msg, id)
-                       
-		except socket.error, e:
-			pass
+
+                    except socket.error, e:
+                        print "VOU MANDAR AVISE DE QUE {0} QUEBROU".format(id)
+                        for i, oth in node.nodes_alive.items():
+                            if id != i:
+                                print "MANDEI PARA ", i
+                                oth.socket.send(chr(id),socket.MSG_OOB)
+                        pass
+
 		#se o other_node.last_heathbeat já foi inicializado
 		if other_node.last_heathbeat :
 			now = datetime.now()
@@ -83,6 +108,6 @@ def is_hearthbeat(msg):
 
 def elect_leader(node,id):
         if node.leader == id:
-            lead_tmp = min(node.nodes_alive.values()).id
-            node.leader = min(node.id, lead_tmp)
+            node.leader = min(min(node.nodes_alive.values()).id,node.id) #necessario, pois nodes_alive nao conte o proprio node
 
+            
