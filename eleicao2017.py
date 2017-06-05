@@ -40,6 +40,7 @@ def hearthbeat_sender(node):
 	node.send_hearthbeat()
 	t = Timer(HEARTHBEAT_TIME, hearthbeat_sender, [node])
 	t.start()
+
 def message_reciver(node):
 
 	for id, other_node in node.nodes_alive.items():
@@ -52,8 +53,11 @@ def message_reciver(node):
 			print "Recebido msg de {1}:{0}".format(msg, id)
 		except socket.error, e:
 			pass
+		#se o other_node.last_heathbeat já foi inicializado
 		if other_node.last_heathbeat :
 			now = datetime.now()
+			
+			#se o ultimo hearthbeat foi enviado em um tempo > do que HEARTHBEAT_MAX_WAIT_TIME
 			if other_node.last_heathbeat + timedelta(seconds=HEARTHBEAT_MAX_WAIT_TIME) < now:
 				del node.nodes_alive[id]
 				print "{0}Nodo {1} morto{2}".format(bcolors.FAIL, id, bcolors.ENDC)

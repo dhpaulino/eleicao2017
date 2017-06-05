@@ -40,10 +40,12 @@ def main():
 				break
 	print "{0}Todos os nodos se conectaram{1}".format(bcolors.OKGREEN, bcolors.ENDC)
 
+	#envia o hearthbeat do nodo em tempos em tempos
 	hearthbeat_sender(node)
 
-	
+
 	while True:
+		#recebe mensagem dos outros nodos
 		message_reciver(node)
 
 
