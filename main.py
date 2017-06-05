@@ -47,6 +47,7 @@ def main():
 	while True:
 		#recebe mensagem dos outros nodos
 		message_reciver(node)
+                print  node.nodes_alive.items()
 
 
 

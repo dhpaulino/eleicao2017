@@ -5,15 +5,15 @@ from threading import Timer
 import socket
 from datetime import datetime, timedelta
 
-N_NODES=4
+N_NODES=3
 MSG_SIZE = 1 #numeros de bits
 HEARTHBEAT_TIME = 5 #segundos
 HEARTHBEAT_MAX_WAIT_TIME = 8 #segundos
 NODES={0: ("200.17.202.6", 5313), #macalan
- 1: ("200.17.202.11", 5313), #mumm
- 2: ("200.17.202.28", 5313), #orval
- 3: ("10.254.223.52", 5313)} #h48
+ 1: ("200.17.202.28", 5313), #orval
+ 2: ("10.254.223.52", 5313)} #h48
 
+# 1: ("200.17.202.11", 5313), #mumm
 
 """
 ESTRUTURA DA MENSAGEM
@@ -48,7 +48,12 @@ def message_reciver(node):
 	for id, other_node in node.nodes_alive.items():
 		try:
 			msg = bitarray(MSG_SIZE)
-			other_node.socket.recv_into(msg)
+			nbytes = other_node.socket.recv_into(msg)
+                        #VERIFICAR AQUI PARA FIM DE CONEXAO? SIM, pois o buffer ainda está cheio, e send() pode continuar mandando. Palhaçadas do socket.
+                        if nbytes == 0:
+                            del node.nodes_alive[id]
+                            print "{0}Nodo {1} morto{2} POR TÉRMINO DE PROCESSO".format(bcolors.FAIL, id, bcolors.ENDC)
+
 
 			if(is_hearthbeat(msg)):
 				other_node.last_heathbeat = datetime.now()
@@ -59,15 +64,16 @@ def message_reciver(node):
 		#se o other_node.last_heathbeat já foi inicializado
 		if other_node.last_heathbeat :
 			now = datetime.now()
+                        #print other_node, other_node.last_heathbeat, now
 
 			#se o ultimo hearthbeat foi enviado em um tempo > do que HEARTHBEAT_MAX_WAIT_TIME
 			if other_node.last_heathbeat + timedelta(seconds=HEARTHBEAT_MAX_WAIT_TIME) < now:
 				del node.nodes_alive[id]
-				print "{0}Nodo {1} morto{2}".format(bcolors.FAIL, id, bcolors.ENDC)
+				print "{0}Nodo {1} morto{2} POR TIMEOUT".format(bcolors.FAIL, id, bcolors.ENDC)
 
 def mount_heathbeat():
 	return bitarray('0')
+
 def is_hearthbeat(msg):
 	return not msg[0] #tipo==0(False)
-
 
