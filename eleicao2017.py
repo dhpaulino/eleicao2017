@@ -53,12 +53,16 @@ def message_reciver(node):
                         if nbytes == 0:
                             del node.nodes_alive[id]
                             print "{0}Nodo {1} morto{2} POR TÉRMINO DE PROCESSO".format(bcolors.FAIL, id, bcolors.ENDC)
+                            #to do: enviar menssagem de urgenca aos demais
+                            elect_leader(node, id)
+
 
 
 			if(is_hearthbeat(msg)):
 				other_node.last_heathbeat = datetime.now()
 
 			print "Recebido msg de {1}:{0}".format(msg, id)
+                       
 		except socket.error, e:
 			pass
 		#se o other_node.last_heathbeat já foi inicializado
@@ -76,4 +80,9 @@ def mount_heathbeat():
 
 def is_hearthbeat(msg):
 	return not msg[0] #tipo==0(False)
+
+def elect_leader(node,id):
+        if node.leader == id:
+            lead_tmp = min(node.nodes_alive.values()).id
+            node.leader = min(node.id, lead_tmp)
 
