@@ -1,3 +1,5 @@
+#!coding:utf-8
+
 from bitarray import *
 from threading import Timer
 import socket
@@ -47,6 +49,7 @@ def message_reciver(node):
 		try:
 			msg = bitarray(MSG_SIZE)
 			other_node.socket.recv_into(msg)
+
 			if(is_hearthbeat(msg)):
 				other_node.last_heathbeat = datetime.now()
 
@@ -56,7 +59,7 @@ def message_reciver(node):
 		#se o other_node.last_heathbeat já foi inicializado
 		if other_node.last_heathbeat :
 			now = datetime.now()
-			
+
 			#se o ultimo hearthbeat foi enviado em um tempo > do que HEARTHBEAT_MAX_WAIT_TIME
 			if other_node.last_heathbeat + timedelta(seconds=HEARTHBEAT_MAX_WAIT_TIME) < now:
 				del node.nodes_alive[id]
