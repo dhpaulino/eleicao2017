@@ -7,7 +7,7 @@ class Node(object):
 	ip=None
 	port=None
 	socket=None #if the node is in "nodes_alive" it's the client socket within that node, if not it's the server socket of the node itself
-	time_last_heathbeat=None
+	last_heathbeat=None
 	nodes_alive=None
 
 	def __init__(self, id, ip, port):
@@ -20,6 +20,7 @@ class Node(object):
 		"""Cria o servidor TCP do nodo de acordo com ip e porta informado"""
 
 		self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+		self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
   		self.socket.bind((self.ip, self.port))
   		#fcntl.fcntl(self.socket, fcntl.F_SETFL, os.O_NONBLOCK)
 
@@ -43,7 +44,10 @@ class Node(object):
 	
 	def send_hearthbeat(self):
 		for id, node in self.nodes_alive.iteritems():
-			node.socket.send(mount_heathbeat())
+			try:
+				node.socket.send(mount_heathbeat())
+			except socket.error:
+				pass
 
 
 
