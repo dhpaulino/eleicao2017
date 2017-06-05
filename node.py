@@ -1,5 +1,6 @@
 import socket
-import eleicao2017
+from eleicao2017 import *
+import fcntl, os
 
 class Node(object):
 	id=None
@@ -20,6 +21,7 @@ class Node(object):
 
 		self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
   		self.socket.bind((self.ip, self.port))
+  		#fcntl.fcntl(self.socket, fcntl.F_SETFL, os.O_NONBLOCK)
 
 	def connect(self, id, ip_dest, port_dest):
 		"""Conecta com o nodo informado e adiciona na lista de nodos vivos. Retorna o nodo criado"""
@@ -39,9 +41,11 @@ class Node(object):
 		self.nodes_alive[id] = node
 		return node
 	
-	def send_data(self, node, message):
-		"""envia dado para o nodo informado"""
-		node.socket.send(message)
+	def send_hearthbeat(self):
+		for id, node in self.nodes_alive.iteritems():
+			node.socket.send(mount_heathbeat())
+
+
 
 
 
