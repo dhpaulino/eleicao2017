@@ -16,6 +16,6 @@ Em cada um dos 4 nodos você rodar o seguinte comando:
 ``` python
 python main.py id_node
 ```
-O `id_node` variam de 0 a 3 e deve ser colocado de acordo com o IP do nodo.
+O `id_node` varia de 0 a 3 e deve ser colocado de acordo com o IP do nodo.
 
 
