@@ -10,6 +10,7 @@ class Node(object):
 	port=None
 	socket=None #if the node is in "nodes_alive" it's the client socket within that node, if not it's the server socket of the node itself
 	last_heathbeat=None
+        first_heathbeat=None
 	nodes_alive=None
         leader=None
 
@@ -18,7 +19,7 @@ class Node(object):
 		self.ip = ip
 		self.port = port
 		self.nodes_alive={}
-                self.leader = 0
+                #self.leader = 0
 
 	def bind_socket(self):
 		"""Cria o servidor TCP do nodo de acordo com ip e porta informado"""

@@ -10,10 +10,14 @@ MSG_SIZE = 1 #numeros de bits
 HEARTHBEAT_TIME = 5 #segundos
 HEARTHBEAT_MAX_WAIT_TIME = 8 #segundos
 NODES={0: ("200.17.202.6", 5313), #macalan
- 1: ("200.17.202.28", 5313), #orval
- 2: ("10.254.223.52", 5313)} #h48
-
-# 1: ("200.17.202.11", 5313), #mumm
+        1: ("10.254.223.49", 5313), #h45
+ 2: ("10.254.223.48", 5313)} #h44 
+ 
+ 
+# ("10.254.223.44", 5313), #h40
+#("10.254.223.52", 5313)} #h48
+# ("200.17.202.28", 5313), #orval
+# ("200.17.202.11", 5313), #mumm
 
 """
 ESTRUTURA DA MENSAGEM
@@ -48,7 +52,7 @@ def message_reciver(node):
 	for id, other_node in node.nodes_alive.items():
 
 		try:    
-                    #mensagem urgente, avisando que caiu aguém
+                    #mensagem urgente, avisando que trocou o lider
                         msgurg = bytearray(1)
                         nurgbytes = other_node.socket.recv_into(msgurg,1,socket.MSG_OOB)
                                                                 
@@ -57,22 +61,19 @@ def message_reciver(node):
 			pass
 
                 if nurgbytes:
-                        print "RECEBI AVISO DE QUE NODE {0} QUEBROU, FECHANDO CONEXAO".format(int(ord(msgurg)))
+                        print "RECEBI AVISO DE QUE O NOVO LIDER EH {0} ".format(int(ord(msgurg)))
                         try:
-                           # node.nodes_alive[ord(msgurg)]
-                            del node.nodes_alive[ord(msgurg)] #????
-                            elect_leader(node, ord(msgurg))
+                           # troca líder                             
+                            node.leader = ord(msgurg)
  
                         except KeyError:
                             pass
-
 
                 else:
                     try:
                         #mensagem regular, heartbeat
 		        msg = bitarray(MSG_SIZE)
 			nbytes = other_node.socket.recv_into(msg)
-                        print "NBYTES=   ",nbytes
                         #VERIFICAR AQUI PARA FIM DE CONEXAO? SIM, pois o buffer ainda está cheio, e send() pode continuar mandando. Palhaçadas do socket.
                         if nbytes == 0:
                             del node.nodes_alive[id]
@@ -83,17 +84,15 @@ def message_reciver(node):
 
 			if(is_hearthbeat(msg)):
 				other_node.last_heathbeat = datetime.now()
+                                if not other_node.first_heathbeat:
+                                    other_node.first_heathbeat = 1
 
 			print "Recebido msg de {1}:{0}".format(msg, id)
 
                     except socket.error, e:
-                        #envia msg urgente para os demais que a conexao caiu
-                        print "VOU MANDAR AVISO DE QUE {0} QUEBROU".format(id)
-                        for i, oth in node.nodes_alive.items():
-                            if i != id:
-                                print "MANDEI PARA ", i
-                                oth.socket.send(chr(id),socket.MSG_OOB)
-
+                                                
+                        # remove nó da lista de  vivos e elege líder (se necessário)
+                        print "DETECTEI MORTE DO NODE  {0}".format(id)
                         del node.nodes_alive[id]
                         elect_leader(node, id)
                         pass
@@ -106,7 +105,21 @@ def message_reciver(node):
 			#se o ultimo hearthbeat foi enviado em um tempo > do que HEARTHBEAT_MAX_WAIT_TIME
 			if other_node.last_heathbeat + timedelta(seconds=HEARTHBEAT_MAX_WAIT_TIME) < now:
 				del node.nodes_alive[id]
+                                elect_leader(node,id)
 				print "{0}Nodo {1} morto{2} POR TIMEOUT".format(bcolors.FAIL, id, bcolors.ENDC)
+                #se é o primeiro heartbeat do último nó enviar, elege líder:                                 
+                if other_node.first_heathbeat == 1:
+                    for i, oth in node.nodes_alive.items():
+                        if not oth.first_heathbeat: #ainda nao recebi hearthbeat de todos os outros
+                            break
+
+                    #PRIMEIRA ELEICAO DE LIDER
+                    node.leader = min(min(node.nodes_alive.values()).id,node.id) 
+                    for i, oth in node.nodes_alive.items():                            
+                        print "MANDEI PARA ", i
+                        oth.socket.send(chr(node.leader),socket.MSG_OOB)
+                        oth.first_heathbeat = 2 #nao será mais utilizado
+
 
 def mount_heathbeat():
 	return bitarray('0')
@@ -117,6 +130,13 @@ def is_hearthbeat(msg):
 def elect_leader(node,id):
         if node.leader == id:
             node.leader = min(min(node.nodes_alive.values()).id,node.id) #necessario, pois nodes_alive nao conte o proprio node
-            print "NOVO LIDER = ", node.leader
+            print "ATUALIZEI LIDER = ", node.leader
 
+            #Se eu percebi que mudou lider, aviso aos demais. Caso fui avisado, nao reenvio aos outros
             
+            print "VOU MANDAR AVISO DE QUE TEMOS UM NOVO LIDER {0}".format(node.leader)
+            for i, oth in node.nodes_alive.items():
+                if i != id:
+                    print "MANDEI PARA ", i
+                    oth.socket.send(chr(node.leader),socket.MSG_OOB)
+
