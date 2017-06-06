@@ -48,13 +48,13 @@ class Node(object):
 		return node
 	
 	def send_hearthbeat(self):
-                print "LIDER EH    ", self.leader
-                print "VIVOS: ",self.nodes_alive.items()
+                #print "LIDER EH    ", self.leader
+                #print "VIVOS: ",self.nodes_alive.items()
 		for id, node in self.nodes_alive.iteritems():
 			try:
-                                print "TENTANDO ENVIAR PARA ", node.id
+                                #print "TENTANDO ENVIAR PARA ", node.id
 				n_sent = node.socket.send(mount_heathbeat())
-                                print "ENVIADO HEARTBEAT PARA", node.id, n_sent
+                                #print "ENVIADO HEARTBEAT PARA", node.id, n_sent
                                 if n_sent == 0 :
                                     raise RuntimeError("socket connection broken")
 
