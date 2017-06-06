@@ -10,14 +10,15 @@ MSG_SIZE = 1 #numeros de bits
 HEARTHBEAT_TIME = 5 #segundos
 HEARTHBEAT_MAX_WAIT_TIME = 8 #segundos
 NODES={0: ("200.17.202.6", 5313), #macalan
-        1: ("10.254.223.49", 5313), #h45
- 2: ("10.254.223.48", 5313), #h44 
- 
-3: ("10.254.223.62", 5313)} #h68
+        1: ("200.17.202.28", 5313), #orval
+        2: ("10.254.223.63", 5313), #h59
+3: ("10.254.223.62", 5313)} #h58
 
 
 #("10.254.223.44", 5313)} #h40
  
+# ("10.254.223.48", 5313), #h44 
+ #("10.254.223.49", 5313), #h45
 #("10.254.223.52", 5313)} #h48
 # ("200.17.202.28", 5313), #orval
 # ("200.17.202.11", 5313), #mumm
@@ -84,6 +85,7 @@ def message_reciver(node):
                             print "\n** DETECTEI MORTE DO NODE {0} ".format(id)
                             del node.nodes_alive[id]
                             print "** REMOVI NODE {0} DA MINHA LISTA ".format(id)                       
+                            print_alives(node)
                             #print "{0}Nodo {1} morto{2} POR TÉRMINO DE PROCESSO".format(bcolors.FAIL, id, bcolors.ENDC)
                             elect_leader(node, id)
 
@@ -103,6 +105,7 @@ def message_reciver(node):
                         del node.nodes_alive[id]
                         print "** REMOVI NODE {0} DA MINHA LISTA ".format(id)
                         elect_leader(node, id)
+                        print_alives(node)
                         pass
 
 		#se o other_node.last_heathbeat já foi inicializado
@@ -123,12 +126,16 @@ def message_reciver(node):
 
                     #PRIMEIRA ELEICAO DE LIDER
                     node.leader = min(min(node.nodes_alive.values()).id,node.id) 
+                    print "\n** RECEBI HEARTHBEAT DE TODOS\n** PRIMEIRA ELEICAO DE LIDER.\n** LIDER EH {0}".format(node.leader)
                     for i, oth in node.nodes_alive.items():                            
-                        print "** RECEBI HEARTHBEAT DE TODOS \n** PRIMEIRA ELEICAO DE LIDER\n** MANDEI LIDER PARA ", i
+                        print "** MANDEI LIDER PARA ", i
                         oth.socket.send(chr(node.leader),socket.MSG_OOB)
                         oth.first_heathbeat = 2 #nao será mais utilizado
 
 
+def print_alives(node):
+        print "\n** NODES CONECTADOS A MIM: ", list(node.nodes_alive.keys())    
+        print "** LIDER EH {0}".format(node.leader)
 def mount_heathbeat():
 	return bitarray('0')
 

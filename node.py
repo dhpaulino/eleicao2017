@@ -49,7 +49,7 @@ class Node(object):
 	
 	def send_hearthbeat(self):
                 #print "LIDER EH    ", self.leader
-                #print "VIVOS: ",self.nodes_alive.items()
+                #print "VIVOS: ",list(self.nodes_alive.keys())
 		for id, node in self.nodes_alive.iteritems():
 			try:
                                 #print "TENTANDO ENVIAR PARA ", node.id
