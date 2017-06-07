@@ -118,24 +118,24 @@ def message_reciver(node):
             if other_node.last_heathbeat + timedelta(seconds=HEARTHBEAT_MAX_WAIT_TIME) < now:
                 del node.nodes_alive[id]
                 elect_leader(node,id)
-                
+
                 print "\n {0}Nodo {1} morto{2} POR TIMEOUT".format(bcolors.FAIL, id, bcolors.ENDC)
                 #se é o primeiro heartbeat do último nó enviar, elege líder:                                 
-                if other_node.first_heathbeat == 1:
-                    for i, oth in node.nodes_alive.items():
-                        if not oth.first_heathbeat: #ainda nao recebi hearthbeat de todos os outros
-                            break
+        if other_node.first_heathbeat == 1:
+            for i, oth in node.nodes_alive.items():
+                if not oth.first_heathbeat: #ainda nao recebi hearthbeat de todos os outros
+                    break
 
-                    #PRIMEIRA ELEICAO DE LIDER
-                    node.leader = min(min(list(node.nodes_alive.keys())),node.id) 
-                    print "\n** RECEBI HEARTHBEAT DE TODOS\n** PRIMEIRA ELEICAO DE LIDER.\n** LIDER EH {0}".format(node.leader)
-                    for i, oth in node.nodes_alive.items():                            
-                        print "** MANDEI LIDER PARA ", i
-                        nsend = oth.socket.send(chr(node.leader),socket.MSG_OOB)
-                        #print " ######### ENVIADOS URG {0}".format(nsend)
+            #PRIMEIRA ELEICAO DE LIDER
+            node.leader = min(min(list(node.nodes_alive.keys())),node.id) 
+            print "\n** RECEBI HEARTHBEAT DE TODOS\n** PRIMEIRA ELEICAO DE LIDER.\n** LIDER EH {0}".format(node.leader)
+            for i, oth in node.nodes_alive.items():                            
+                print "** MANDEI LIDER PARA ", i
+                nsend = oth.socket.send(chr(node.leader),socket.MSG_OOB)
+                #print " ######### ENVIADOS URG {0}".format(nsend)
 
-                        oth.first_heathbeat = 2 #nao será mais utilizado
-            
+                oth.first_heathbeat = -1 #nao será mais utilizado
+    
 
 
 def print_alives(node):

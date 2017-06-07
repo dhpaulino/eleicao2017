@@ -42,6 +42,7 @@ def main():
 
 	#envia o hearthbeat do nodo em tempos em tempos
 	hearthbeat_sender(node)
+        print "FASDFASDFSAD"
 
 	while True:
 		#recebe mensagem dos outros nodos
