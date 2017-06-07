@@ -1,0 +1,97 @@
+#!coding:utf-8
+
+from bitarray import *
+from threading import Timer
+import socket
+from datetime import datetime, timedelta
+
+N_NODES=4
+MSG_SIZE = 1 #numeros de bits
+HEARTHBEAT_TIME = 2  #segundos
+HEARTHBEAT_MAX_WAIT_TIME = 8 #segundos
+NODES={0: ("200.17.202.6", 5313), #macalan
+        1: ("200.17.202.28", 5313), #orval
+        2: ("10.254.224.17" ,5313), #montaro
+        3: ("10.254.224.21", 5313)} #xereta
+        
+#("10.254.223.62", 5313)} #h58
+
+
+ #("10.254.223.63", 5313), #h59
+#("10.254.223.44", 5313)} #h40
+ 
+# ("10.254.223.48", 5313), #h44 
+ #("10.254.223.49", 5313), #h45
+#("10.254.223.52", 5313)} #h48
+# ("200.17.202.28", 5313), #orval
+# ("200.17.202.11", 5313), #mumm
+
+"""
+ESTRUTURA DA MENSAGEM
+
+|tipo(1 bit)|
+
+TIPO
+0 - hearthbeat
+1 - ?
+"""
+
+#Cores para deixar a saida mais bonita
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
+
+#TODO: usar mesmo objeto timer sempre
+def hearthbeat_sender(node):
+	node.send_hearthbeat()
+	t = Timer(HEARTHBEAT_TIME, hearthbeat_sender, [node])
+	t.start()
+
+
+
+
+def message_reciver(node):
+
+	for id, other_node in node.nodes_alive.items():
+        try:
+            msgurg = bytearray(1)#mensagem urgente, avisando que trocou o lider
+            nurgbytes = other_node.socket.recv_into(msgurg,1,socket.MSG_OOB)         
+		except socket.error, e:
+            nurgbytes=0
+       
+
+
+def print_alives(node):
+    print "\n** NODES CONECTADOS A MIM: ", list(node.nodes_alive.keys())    
+def mount_heathbeat():
+	return bitarray('0')
+
+def is_hearthbeat(msg):
+	return not msg[0] #tipo==0(False)
+
+def elect_leader(node,id):
+    if not node.nodes_alive.items():
+        node.leader = node.id
+        print "\n** TODOS MORRERAM, RESTOU EU"
+        print "** LIDER AGORA EH {0}".format(node.leader)
+    if node.leader == id:
+        print_alives(node)
+        node.leader = min(min(list(node.nodes_alive.keys())),node.id) #necessario, pois nodes_alive nao conte o proprio node
+        print "\n** ATUALIZEI LIDER = ", node.leader
+
+        #Se eu percebi que mudou lider, aviso aos demais. Caso fui avisado, nao reenvio aos outros
+        
+        print "** VOU MANDAR AVISO DE QUE TEMOS UM NOVO LIDER {0}".format(node.leader)
+        for i, oth in node.nodes_alive.items():
+            if i != id:
+                print "** MANDEI NOVO LIDER PARA ", i
+                nsend = oth.socket.send(chr(node.leader),socket.MSG_OOB)
+                #print " ######### ENVIADOS URG {0}".format(nsend)
+
