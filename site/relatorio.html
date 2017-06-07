@@ -10,9 +10,12 @@
 A execução é feita em quatro máquinas distintas (ou quatro terminais logados em máquinas diferentes), em que cada uma executará o comando 
 <xmp> python main.py <id> </xmp>
 em que <id> é o id que está atribuído à máquina no início do arquivo eleicao2017.py.
+</br></br></br><b>Adicionando e removendo nodos: </b></br></br>
+Para adicionar ou remover nodos basta modificar a variavel <i>NODES</i> no arquivo <b>eleicao2017.py</b>. Ela é um dicionário onde as chaves são os ids de cada nodo e o valor é uma tupla, contendo o IP e porta desta, respectivamente. 
+
 
 </br></br></br><b>ARQUIVOS: </b></br></br>
-O arquivo <b>node.py</b>  define a classe node, que é o peer. Compõem um nodo: o id, seu ip, a porta (port), o socket, a hora do último hearthbeat recebido (last_heathbeat), uma flag que indica se o nodo já recebeu hearthbeat de outro (first_heathbeat), uma lista dos peers vizinhos vivos (nodes_alive), e o líder corrente (leader).
+O arquivo <b>node.py</b>  define a classe Node, que é o peer. Compõem um nodo: o id, seu ip, a porta (port), o socket, a hora do último hearthbeat recebido (last_heathbeat), uma flag que indica se o nodo já recebeu hearthbeat de outro (first_heathbeat), uma lista dos peers vizinhos vivos (nodes_alive), e o líder corrente (leader).
 
 <xmp>
 class Node(object):
@@ -26,6 +29,9 @@ class Node(object):
         leader=None
 </xmp>
 
+A classe Node contêm rotinas para que o nodo em questão crie o seu socket em seu respectivo endereço, para que se conecte com um endereço especificado e adicione o nodo correspondete na sua lista de nodos vivos e por último para enviar uma mensagem de heartbeat para os seus nodos vivos.
+<br>
+<br>
 O arquivo <b>main.py</b> é  responsável por efetuar as conexões entre os peers e chamar a função principal:
 
 <xmp>
@@ -36,7 +42,7 @@ while True:
 Cada nodo possui um socket que é mapeado para uma porta padrão, de acordo com as configurações do eleicao2017.py. Após criar o seu próprio socket o nodo tenta se conectar com os outros nodos e se uma conexão foi feita com sucesso, o nodo correspondente é adicionado na lista de nodos vivos(juntamente com o seu socket). Se ainda não se conseguiu conectar com todos os outros nodos, ele espera até que eles façam a conexão.</br>
  
  
-Assim que o nodo se conecta com todos os outros ele envia o hearthbeat após HEARTHBEAT_TIME segundos e continua mandando de acordo com o HEARTHBEAT_TIME, sempre acionando uma thread (heathbeath_sender). </br>
+Assim que o nodo se conecta com todos os outros ele envia o hearthbeat após HEARTHBEAT_TIME segundos e continua mandando de acordo com o HEARTHBEAT_TIME, sempre acionando uma thread (heathbeath_sender). </br><br>
 
 
 O arquivo <b>eleicao2017.py</b> é onde ocorre a lógica responsável pela eleição do líder, e garantir que os hearthbeats sejam recebidos e processados. </br>
@@ -48,7 +54,7 @@ em que other_node é cada peer vizinho conectado. Caso haja mensagem urgente é 
 <xmp> node.leader = ord(msgurg) </xmp>
 Caso não haja mensagem urgente, o fluxo segue para verificar se há mensagem regular (hearthbeat): 
 <xmp>nbytes = other_node.socket.recv_into(msg)</xmp>
-Caso receba mensagem, verifica se é hearthbeat. Em caso positivo, atualiza o registro do último hearthbeat para o tempo atual. É neste momento que é também é verificado se é o prmeiro hearthbeat recebido do nodo em questão. <xmp>
+Caso receba mensagem, verifica se é hearthbeat. Em caso positivo, atualiza o registro do último hearthbeat para o tempo atual. É neste momento que é também é verificado se é o primeiro hearthbeat recebido do nodo em questão. <xmp>
 if(is_hearthbeat(msg)):
        other_node.last_heathbeat = datetime.now()
        if not other_node.first_heathbeat:
@@ -72,7 +78,7 @@ Também é feita verificação dos hearthbeats, pois caso exceda um tempo limite
  
 Até este momento todos os peers estão conectados entre si e enviando regularmente os hearthbeats. </br>
  
-A queda de um peer é detectada de duas maneiras: Ou quando o número de bytes recebidos na conexão “regular” é igual a 0, ou quando é verificado except no socket. 
+A queda de um peer é detectada de duas maneiras: ou quando o número de bytes recebidos na conexão “regular” é igual a 0, ou quando é verificado except no socket. 
 Para o primeiro caso, que é verificado logo após a tentativa de leitura, informa ao usuário que foi detectada a queda (morte) do peer. Em seguida o nodo morto é retirado da lista de nodos vivos, seguido pela chamada da função de eleição de líder:
  
 <xmp>
