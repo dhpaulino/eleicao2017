@@ -61,7 +61,8 @@ def message_reciver(node):
 
     for id, other_node in node.nodes_alive.items():
         try:
-            print "lol" 
+            msgurg = bytearray(1)#mensagem urgente, avisando que trocou o lider
+            nurgbytes = other_node.socket.recv_into(msgurg,1,socket.MSG_OOB)         
         except socket.error, e:                    
             nurgbytes=0
          # se chegou msg urgente
