@@ -50,78 +50,75 @@ class bcolors:
 
 #TODO: usar mesmo objeto timer sempre
 def hearthbeat_sender(node):
-	node.send_hearthbeat()
-	t = Timer(HEARTHBEAT_TIME, hearthbeat_sender, [node])
-	t.start()
+    node.send_hearthbeat()
+    t = Timer(HEARTHBEAT_TIME, hearthbeat_sender, [node])
+    t.start()
 
 
 
 
 def message_reciver(node):
 
-	for id, other_node in node.nodes_alive.items():
-		try:    
-                    #mensagem urgente, avisando que trocou o lider
-                        msgurg = bytearray(1)
-                        nurgbytes = other_node.socket.recv_into(msgurg,1,socket.MSG_OOB)
-                        if nurgbytes == 0: 
-		except socket.error, e:                    
-                        nurgbytes=0
-			pass
-                # se chegou msg urgente
-                if nurgbytes:
-                        print "\n** RECEBI AVISO DE {1} QUE O NOVO LIDER EH {0} ".format(ord(msgurg),id)
-                        print "** VOU ATUALIZAR LIDER PARA {0} ".format(ord(msgurg))
-                        try:
-                           # troca líder                             
-                            node.leader = ord(msgurg)
-                            print "** LIDER AGORA EH {0}".format(ord(msgurg))
- 
-                        except KeyError:
-                            pass
-                # trata msg normal
-                else:
-                    try:
-                        #mensagem regular, heartbeat
-		        msg = bitarray(MSG_SIZE)
-			nbytes = other_node.socket.recv_into(msg)
-                        #VERIFICAR AQUI PARA FIM DE CONEXAO? SIM, pois o buffer ainda está cheio, e send() pode continuar mandando. Palhaçadas do socket.
-                        if nbytes == 0:
-                            print "\n** DETECTEI MORTE DO NODE {0} ".format(id)
-                            del node.nodes_alive[id]
-                            print "** REMOVI NODE {0} DA MINHA LISTA ".format(id)                       
-                            #print "{0}Nodo {1} morto{2} POR TÉRMINO DE PROCESSO".format(bcolors.FAIL, id, bcolors.ENDC)
-                            elect_leader(node, id)
-                            print_alives(node)
+    for id, other_node in node.nodes_alive.items():
+        try:
+            print "lol" 
+        except socket.error, e:                    
+            nurgbytes=0
+         # se chegou msg urgente
+        if nurgbytes:
+            print "\n** RECEBI AVISO DE {1} QUE O NOVO LIDER EH {0} ".format(ord(msgurg),id)
+            print "** VOU ATUALIZAR LIDER PARA {0} ".format(ord(msgurg))
+            try:
+               # troca líder                             
+                node.leader = ord(msgurg)
+                print "** LIDER AGORA EH {0}".format(ord(msgurg))
+
+            except KeyError:
+                pass
+        # trata msg normal
+        else:
+            try:
+                #mensagem regular, heartbeat
+                msg = bitarray(MSG_SIZE)
+                nbytes = other_node.socket.recv_into(msg)
+                #VERIFICAR AQUI PARA FIM DE CONEXAO? SIM, pois o buffer ainda está cheio, e send() pode continuar mandando. Palhaçadas do socket.
+                if nbytes == 0:
+                    print "\n** DETECTEI MORTE DO NODE {0} ".format(id)
+                    del node.nodes_alive[id]
+                    print "** REMOVI NODE {0} DA MINHA LISTA ".format(id)                       
+                    #print "{0}Nodo {1} morto{2} POR TÉRMINO DE PROCESSO".format(bcolors.FAIL, id, bcolors.ENDC)
+                    elect_leader(node, id)
+                    print_alives(node)
 
 
-			if(is_hearthbeat(msg)):
-				other_node.last_heathbeat = datetime.now()
-                                if not other_node.first_heathbeat:
-                                    other_node.first_heathbeat = 1
+                if(is_hearthbeat(msg)):
+                    other_node.last_heathbeat = datetime.now()
+                    if not other_node.first_heathbeat:
+                        other_node.first_heathbeat = 1
 
-			#print "Recebido msg de {1}:{0}".format(msg, id)
+            #print "Recebido msg de {1}:{0}".format(msg, id)
 
-                    except socket.error, e:
-                                                
-                        # remove nó da lista de  vivos e elege líder (se necessário)
-                        print "\n** DETECTEI MORTE DO NODE {0} ".format(id)
-                        del node.nodes_alive[id]
-                        print "** REMOVI NODE {0} DA MINHA LISTA ".format(id)
-                        elect_leader(node, id)
-                        print_alives(node)
-                        pass
+            except socket.error, e:
+                                        
+                # remove nó da lista de  vivos e elege líder (se necessário)
+                print "\n** DETECTEI MORTE DO NODE {0} ".format(id)
+                del node.nodes_alive[id]
+                print "** REMOVI NODE {0} DA MINHA LISTA ".format(id)
+                elect_leader(node, id)
+                print_alives(node)
+                continue
 
-		#se o other_node.last_heathbeat já foi inicializado
-		if other_node.last_heathbeat :
-			now = datetime.now()
+        #se o other_node.last_heathbeat já foi inicializado
+        if other_node.last_heathbeat :
+            now = datetime.now()
                         #print other_node, other_node.last_heathbeat, now
 
-			#se o ultimo hearthbeat foi enviado em um tempo > do que HEARTHBEAT_MAX_WAIT_TIME
-			if other_node.last_heathbeat + timedelta(seconds=HEARTHBEAT_MAX_WAIT_TIME) < now:
-				del node.nodes_alive[id]
-                                elect_leader(node,id)
-				print "\n {0}Nodo {1} morto{2} POR TIMEOUT".format(bcolors.FAIL, id, bcolors.ENDC)
+            #se o ultimo hearthbeat foi enviado em um tempo > do que HEARTHBEAT_MAX_WAIT_TIME
+            if other_node.last_heathbeat + timedelta(seconds=HEARTHBEAT_MAX_WAIT_TIME) < now:
+                del node.nodes_alive[id]
+                elect_leader(node,id)
+                
+                print "\n {0}Nodo {1} morto{2} POR TIMEOUT".format(bcolors.FAIL, id, bcolors.ENDC)
                 #se é o primeiro heartbeat do último nó enviar, elege líder:                                 
                 if other_node.first_heathbeat == 1:
                     for i, oth in node.nodes_alive.items():
@@ -137,15 +134,16 @@ def message_reciver(node):
                         #print " ######### ENVIADOS URG {0}".format(nsend)
 
                         oth.first_heathbeat = 2 #nao será mais utilizado
+            
 
 
 def print_alives(node):
         print "\n** NODES CONECTADOS A MIM: ", list(node.nodes_alive.keys())    
 def mount_heathbeat():
-	return bitarray('0')
+    return bitarray('0')
 
 def is_hearthbeat(msg):
-	return not msg[0] #tipo==0(False)
+    return not msg[0] #tipo==0(False)
 
 def elect_leader(node,id):
         if not node.nodes_alive.items():
