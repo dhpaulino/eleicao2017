@@ -1,0 +1,127 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+
+<title> RELATÓRIO </title> 
+</head>
+
+<h1> RELATÓRIO </h1>
+
+A execução é feita em quatro máquinas distintas (ou quatro terminais logados em máquinas diferentes), em que cada uma executará o comando 
+<xmp> python main.py <id> </xmp>
+em que <id> é o id que está atribuído à máquina no início do arquivo eleicao2017.py.
+
+</br></br></br><b>ARQUIVOS: </b></br></br>
+O arquivo <b>node.py</b>  define a classe node, que é o peer. Compõem um nodo: o id, seu ip, a porta (port), o socket, a hora do último hearthbeat recebido (last_heathbeat), uma flag que indica se o nodo já recebeu hearthbeat de outro (first_heathbeat), uma lista dos peers vizinhos vivos (nodes_alive), e o líder corrente (leader).
+
+<xmp>
+class Node(object):
+	id=None
+	ip=None
+	port=None
+	socket=None #if the node is in "nodes_alive" it's the client socket within that node, if not it's the server socket of the node itself
+	last_heathbeat=None
+        first_heathbeat=None
+	nodes_alive=None
+        leader=None
+</xmp>
+
+O arquivo <b>main.py</b> é  responsável por efetuar as conexões entre os peers e chamar a função principal:
+
+<xmp>
+while True:
+	message_reciver(node)
+</xmp>
+
+Cada nodo possui um socket que é mapeado para uma porta padrão, de acordo com as configurações do eleicao2017.py. Após criar o seu próprio socket o nodo tenta se conectar com os outros nodos e se uma conexão foi feita com sucesso, o nodo correspondente é adicionado na lista de nodos vivos(juntamente com o seu socket). Se ainda não se conseguiu conectar com todos os outros nodos, ele espera até que eles façam a conexão.</br>
+ 
+ 
+Assim que o nodo se conecta com todos os outros ele envia o hearthbeat após HEARTHBEAT_TIME segundos e continua mandando de acordo com o HEARTHBEAT_TIME, sempre acionando uma thread (heathbeath_sender). </br>
+
+
+O arquivo <b>eleicao2017.py</b> é onde ocorre a lógica responsável pela eleição do líder, e garantir que os hearthbeats sejam recebidos e processados. </br>
+  
+ 
+Dentro do fluxo principal fica-se esperando mensagens dos outros nodos pela função <xmp>message_reciever(node)</xmp>. Esta função itera sobre os peers “vizinhos” do nodo, verificando se há mensagens no socket. A primeira verificação é feita para mensagens urgentes: 
+<xmp>nurgbytes = other_node.socket.recv_into(msgurg,1,socket.MSG_OOB)</xmp>
+em que other_node é cada peer vizinho conectado. Caso haja mensagem urgente é porque houve troca de líder, e, portanto, o nodo deve atualizar o líder armazenado:
+<xmp> node.leader = ord(msgurg) </xmp>
+Caso não haja mensagem urgente, o fluxo segue para verificar se há mensagem regular (hearthbeat): 
+<xmp>nbytes = other_node.socket.recv_into(msg)</xmp>
+Caso receba mensagem, verifica se é hearthbeat. Em caso positivo, atualiza o registro do último hearthbeat para o tempo atual. É neste momento que é também é verificado se é o prmeiro hearthbeat recebido do nodo em questão. <xmp>
+if(is_hearthbeat(msg)):
+       other_node.last_heathbeat = datetime.now()
+       if not other_node.first_heathbeat:
+       	      other_node.first_heathbeat = 1
+</xmp>
+ 
+Caso seja o primeiro, é necessário verificar se já foram recebidos os primeiros hearthbeats de todos os nós, para então ser realizada a primeira eleição de líder, como na especificação do trabalho. Envia-se então a todos os peers - como mensagem urgente - o resultado da eleição.
+ 
+<xmp>
+node.leader = min(min(list(node.nodes_alive.keys())),node.id)   #Eleicao do menor
+print "\n** RECEBI HEARTHBEAT DE TODOS\n** PRIMEIRA ELEICAO DE LIDER.\n** LIDER EH {0}".format(node.leader)
+for i, oth in node.nodes_alive.items():   # Envia para todos os vizinhos                            
+	print "** MANDEI LIDER PARA ", i
+	nsend = oth.socket.send(chr(node.leader),socket.MSG_OOB)
+	oth.first_heathbeat = -1   #pois não será mais utilizado
+ 
+</xmp>
+ 
+Também é feita verificação dos hearthbeats, pois caso exceda um tempo limite especificado no início do código, pode representar problemas na conexão. Porém, como a conexão será encerrada manualmente, esse erro não ocorrerá nos testes. </br> 
+ 
+ 
+Até este momento todos os peers estão conectados entre si e enviando regularmente os hearthbeats. </br>
+ 
+A queda de um peer é detectada de duas maneiras: Ou quando o número de bytes recebidos na conexão “regular” é igual a 0, ou quando é verificado except no socket. 
+Para o primeiro caso, que é verificado logo após a tentativa de leitura, informa ao usuário que foi detectada a queda (morte) do peer. Em seguida o nodo morto é retirado da lista de nodos vivos, seguido pela chamada da função de eleição de líder:
+ 
+<xmp>
+nbytes = other_node.socket.recv_into(msg)          
+if nbytes == 0:
+	print "\n** DETECTEI MORTE DO NODE {0} ".format(id) #imprime na tela ao usuário
+	del node.nodes_alive[id]	#Removo o nodo da  minha lista de vivos
+        print "** REMOVI NODE {0} DA MINHA LISTA ".format(id)                                       
+        elect_leader(node, id)
+        continue
+</xmp>
+ 
+Para o segundo caso, quando a except é detectada, o mesmo procedimento ocorre. Ressalta-se que quando ocorre a exception, é grande a chance que vários, ou todos os outros peers, detectem que o nodo morreu quase que simultaneamente. Com isso, todos irão atualizar o líder e enviarão para os demais em urgência. Isso não acarreta problemas na escolha do líder correto, apenas uma redundância inevitável.</br>
+ 
+ 
+Após detectar a morte de um peer, se esse peer for o líder, o nodo deve avisar aos demais que há um novo líder, que é feito na própria função de eleição do líder. É eleito o novo líder dentre os vizinhos vivos com o menor id, que será enviado como mensagem urgente para os demais: (caso o peer morto não seja o líder, os nodos irão detectar o fim da conexão, o removerão de sua lista de nodos vivos, e não enviarão mensagem aos outros, como especificado no enunciado do trabalho)
+ 
+<xmp>
+def elect_leader(node,id):
+        if not node.nodes_alive.items():   # Apenas para o caso em que os outros peers morreram, i.e., sobrou apenas eu.
+                node.leader = node.id
+                print "\n** TODOS MORRERAM, RESTOU EU"
+                print "** LIDER AGORA EH {0}".format(node.leader)
+        if node.leader == id:  		   # O líder que tenho armazenado é o mesmo que morreu, preciso eleger outro e avisar aos demais.
+                print_alives(node)	   # Imprime na tela os peers vizinhos vivos	
+                node.leader = min(min(list(node.nodes_alive.keys())),node.id) # Eleicao do menor
+                print "\n** ATUALIZEI LIDER = ", node.leader                
+            
+                print "** VOU MANDAR AVISO DE QUE TEMOS UM NOVO LIDER {0}".format(node.leader)
+                for i, oth in node.nodes_alive.items():  # Envia o novo líder para os outros com urgência
+                    if i != id:
+                        print "** MANDEI NOVO LIDER PARA ", i
+                        nsend = oth.socket.send(chr(node.leader),socket.MSG_OOB)
+</xmp>
+
+<b>O formato das mensagens: </b></br>
+O hearthbeat é um bitarray, em que '0' representa heartbeat.
+A mensagem de urgência é um bytearray, que contém o id do novo líder. (como a mensagem de urgência TCP, representada pela flag MSG_OOB, envia apenas 1 byte de dados, é necessário fazer a conversão do id para o tipo char, e no receptor, converter novamente para inteiro: </br>
+No emissor: 
+<xmp>
+nsend = oth.socket.send(chr(node.leader),socket.MSG_OOB)   # Em que node.leader é o id do líder
+</xmp>
+No receptor:
+<xmp> 
+nurgbytes = other_node.socket.recv_into(msgurg,1,socket.MSG_OOB)  # Recebe a mensagem como char
+</xmp>
+...
+<xmp>
+node.leader = ord(msgurg)   # Conversão para inteiro
+</xmp>
+
+</html>
